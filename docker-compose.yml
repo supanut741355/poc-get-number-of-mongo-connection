@@ -1,0 +1,91 @@
+x-mongo: &mongo
+  image: mongo:${MONGO_VERSION:-7.0}
+  command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+    interval: 5s
+    timeout: 5s
+    retries: 20
+  networks: [lab]
+
+services:
+  mongo1:
+    <<: *mongo
+    container_name: mongo1
+    hostname: mongo1
+    ports: ["27017:27017"]
+    volumes: [mongo1-data:/data/db]
+
+  mongo2:
+    <<: *mongo
+    container_name: mongo2
+    hostname: mongo2
+    ports: ["27018:27017"]
+    volumes: [mongo2-data:/data/db]
+
+  mongo3:
+    <<: *mongo
+    container_name: mongo3
+    hostname: mongo3
+    ports: ["27019:27017"]
+    volumes: [mongo3-data:/data/db]
+
+  mongo-init:
+    image: mongo:${MONGO_VERSION:-7.0}
+    container_name: mongo-init
+    depends_on:
+      mongo1: { condition: service_healthy }
+      mongo2: { condition: service_healthy }
+      mongo3: { condition: service_healthy }
+    networks: [lab]
+    restart: "no"
+    entrypoint:
+      - mongosh
+      - --host
+      - mongo1:27017
+      - --quiet
+      - --eval
+      - |
+        try {
+          rs.status();
+          print("replica set already initiated");
+        } catch (e) {
+          rs.initiate({
+            _id: "rs0",
+            members: [
+              { _id: 0, host: "mongo1:27017", priority: 2 },
+              { _id: 1, host: "mongo2:27017", priority: 1 },
+              { _id: 2, host: "mongo3:27017", priority: 1 }
+            ]
+          });
+          print("replica set initiated");
+        }
+        while (!db.hello().isWritablePrimary) { print("waiting for primary..."); sleep(1000); }
+        print("primary ready: " + db.hello().primary);
+
+  app:
+    build: .
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
+    environment:
+      MONGODB_URI: ${MONGODB_URI}
+      DB_NAME: ${DB_NAME:-demo}
+      APP_NAME: ${APP_NAME:-my-express-api}
+      MAX_POOL_SIZE: ${MAX_POOL_SIZE:-20}
+      MIN_POOL_SIZE: ${MIN_POOL_SIZE:-0}
+      MAX_IDLE_TIME_MS: ${MAX_IDLE_TIME_MS:-0}
+      PORT: ${PORT:-3000}
+      STATS_LOG_INTERVAL_MS: ${STATS_LOG_INTERVAL_MS:-10000}
+    ports: ["${APP_HOST_PORTS:-3000-3004}:${PORT:-3000}"]
+    restart: unless-stopped
+    networks: [lab]
+
+networks:
+  lab:
+    name: mongo-lab
+
+volumes:
+  mongo1-data:
+  mongo2-data:
+  mongo3-data:

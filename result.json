@@ -1,0 +1,30 @@
+{
+  "appName": "my-express-api",
+  "pid": 1,
+  "maxPoolSizePerNode": 20,
+  "current": 0,
+  "inUse": 0,
+  "peak": 12,
+  "peakInUse": 10,
+  "totalCreated": 14,
+  "totalClosed": 14,
+  "startedAt": "2026-09-29T04:27:09.809Z",
+  "peakAt": "2026-09-29T04:28:22.605Z",
+  "lastUpdated": "2026-09-29T04:28:52.625Z"
+}
+
+
+{
+  "appName": "my-express-api",
+  "pid": 1,
+  "maxPoolSizePerNode": 20,
+  "current": 16,
+  "inUse": 0,
+  "peak": 16,
+  "peakInUse": 14,
+  "totalCreated": 30,
+  "totalClosed": 14,
+  "startedAt": "2026-09-29T04:27:09.809Z",
+  "peakAt": "2026-09-29T04:30:01.640Z",
+  "lastUpdated": "2026-09-29T04:30:01.651Z"
+}
